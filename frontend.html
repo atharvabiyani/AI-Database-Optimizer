@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>AI SQL Query Generator & Explainer</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      header {
+        padding: 20px;
+        text-align: center;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+      }
+      header img {
+        border-radius: 50%;
+        margin-bottom: 10px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 2rem;
+        color: #333;
+      }
+      .chatbox {
+        max-width: 800px;
+        height: 450px;
+        margin: auto;
+        overflow-y: auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+      .message {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+      }
+      .message.user {
+        align-items: flex-end;
+      }
+      .message.bot {
+        align-items: flex-start;
+      }
+      .message .bubble {
+        padding: 12px 18px;
+        border-radius: 20px;
+        max-width: 80%;
+        line-height: 1.4;
+        position: relative;
+      }
+      .message.user .bubble {
+        background-color: #0084ff;
+        color: #fff;
+        border-bottom-right-radius: 0;
+      }
+      .message.bot .bubble {
+        background-color: #e5e5ea;
+        color: #000;
+        border-bottom-left-radius: 0;
+      }
+      .input-container {
+        max-width: 800px;
+        display: flex;
+        margin: 20px auto;
+        align-items: center;
+      }
+      .input-container select,
+      .input-container input[type="text"] {
+        padding: 12px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .input-container select {
+        margin-right: 10px;
+      }
+      .input-container input[type="text"] {
+        flex-grow: 1;
+        margin-right: 10px;
+      }
+      .input-container button {
+        padding: 12px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        background-color: #28a745;
+        color: #fff;
+        cursor: pointer;
+      }
+      .input-container button:hover {
+        background-color: #218838;
+      }
+      footer {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 20px;
+      }
+      /* Container for the label and copy button on a single row */
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      /* Copy button styling */
+      .copy-button {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+        border: none;
+        border-radius: 3px;
+        background-color: #6c757d;
+        color: #fff;
+        cursor: pointer;
+      }
+      .copy-button:hover {
+        background-color: #5a6268;
+      }
+      pre {
+        background-color: #343a40;
+        color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="https://www.datameer.com/wp-content/uploads/2023/08/TDS-guest-post-924x512.png" alt="Logo" width="120">
+      <h1>AI SQL Query Generator & Explainer</h1>
+    </header>
+    <div class="chatbox" id="chatbox"></div>
+    <div class="input-container">
+      <select id="mode">
+        <option value="nl2sql">Natural Language to SQL</option>
+        <option value="sql2explanation">SQL to Explanation</option>
+      </select>
+      <input type="text" id="query" placeholder="Type your natural language query here...">
+      <button id="process" class="btn">Generate SQL</button>
+    </div>
+    <footer>
+      <p>Generated outputs may require review for accuracy.</p>
+    </footer>
+    <script>
+      const chatbox = document.getElementById("chatbox");
+      const queryInput = document.getElementById("query");
+      const modeSelect = document.getElementById("mode");
+      const processButton = document.getElementById("process");
+      
+      // Update placeholder and button text based on selected mode
+      modeSelect.addEventListener("change", () => {
+        if(modeSelect.value === "nl2sql"){
+          queryInput.placeholder = "Type your natural language query here...";
+          processButton.textContent = "Generate SQL";
+        } else if(modeSelect.value === "sql2explanation"){
+          queryInput.placeholder = "Type your SQL query here...";
+          processButton.textContent = "Explain SQL";
+        }
+      });
+      
+      processButton.addEventListener("click", async () => {
+        const mode = modeSelect.value;
+        const inputText = queryInput.value.trim();
+        if (!inputText) {
+          alert("Please enter a query.");
+          return;
+        }
+        
+        // Add user message to chatbox
+        const userMessageDiv = document.createElement("div");
+        userMessageDiv.className = "message user";
+        const userBubble = document.createElement("div");
+        userBubble.className = "bubble";
+        userBubble.innerHTML = `<strong>You:</strong> ${inputText}`;
+        userMessageDiv.appendChild(userBubble);
+        chatbox.appendChild(userMessageDiv);
+        
+        // Clear the input field
+        queryInput.value = "";
+        
+        // Display a loading message
+        const loadingDiv = document.createElement("div");
+        loadingDiv.className = "message bot";
+        const loadingBubble = document.createElement("div");
+        loadingBubble.className = "bubble";
+        loadingBubble.innerHTML = "Processing...";
+        loadingDiv.appendChild(loadingBubble);
+        chatbox.appendChild(loadingDiv);
+        chatbox.scrollTop = chatbox.scrollHeight;
+        
+        let endpoint = "";
+        let label = "";
+        if (mode === "nl2sql") {
+          endpoint = "/generate_sql";
+          label = "SQL Query:";
+        } else if (mode === "sql2explanation") {
+          endpoint = "/explain_sql";
+          label = "Explanation:";
+        }
+        
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ query: inputText })
+          });
+          const data = await response.json();
+          
+          // Remove the loading message
+          chatbox.removeChild(loadingDiv);
+          
+          // Create bot message container
+          const botMessageDiv = document.createElement("div");
+          botMessageDiv.className = "message bot";
+          const botBubble = document.createElement("div");
+          botBubble.className = "bubble";
+          
+          // Create a row for the label and the copy button
+          const labelRow = document.createElement("div");
+          labelRow.className = "label-row";
+          
+          // Label on the left
+          const labelDiv = document.createElement("div");
+          labelDiv.innerHTML = `<strong>${label}</strong>`;
+          
+          // Copy button on the right
+          const copyButton = document.createElement("button");
+          copyButton.className = "copy-button";
+          copyButton.textContent = "Copy";
+          
+          // Create pre element with generated text
+          const preElement = document.createElement("pre");
+          const resultText = mode === "nl2sql" ? data.sql : data.explanation;
+          preElement.textContent = resultText;
+          
+          // Copy button functionality
+          copyButton.onclick = () => {
+            navigator.clipboard.writeText(resultText).then(() => {
+              copyButton.textContent = "Copied!";
+              setTimeout(() => {
+                copyButton.textContent = "Copy";
+              }, 2000);
+            }).catch(err => {
+              console.error("Failed to copy text: ", err);
+            });
+          };
+          
+          labelRow.appendChild(labelDiv);
+          labelRow.appendChild(copyButton);
+          
+          // Add label row and output to bubble
+          botBubble.appendChild(labelRow);
+          botBubble.appendChild(preElement);
+          
+          botMessageDiv.appendChild(botBubble);
+          chatbox.appendChild(botMessageDiv);
+        } catch (error) {
+          // Remove the loading message and show error
+          chatbox.removeChild(loadingDiv);
+          const errorDiv = document.createElement("div");
+          errorDiv.className = "message bot";
+          const errorBubble = document.createElement("div");
+          errorBubble.className = "bubble";
+          errorBubble.innerHTML = `<strong>Error:</strong> ${error}`;
+          errorDiv.appendChild(errorBubble);
+          chatbox.appendChild(errorDiv);
+        }
+        
+        // Scroll to the bottom
+        chatbox.scrollTop = chatbox.scrollHeight;
+      });
+    </script>
+  </body>
+</html>
