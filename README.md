@@ -8,6 +8,9 @@
 - Detect redundant tables, views, and naming issues
 - Provide interactive optimization suggestions
 
+# Poster
+[📄 View Project Poster (PDF)](./poster_39.USAA%20-%20DatabAIse.pdf)
+
 ---
 
 ## 🧠 Features
@@ -56,3 +59,21 @@
 - Uses `gpt-3.5-turbo` for SQL generation and explanation
 - Embeds Snowflake schema/table metadata into `ChromaDB`
 - Utilizes vector search for high-relevance schema and query analysis
+
+---
+
+
+## 👥 Contributors
+Technical Team:
+- Atharva Biyani 
+- Dharshini Mahesh 
+- Neha Kandula 
+- Sneha Elangovan 
+- Suvel Sunilnath 
+
+Faculty Advisor:
+- Dr. Gopal Gupta
+
+Sponsors & Support Staff:
+- Steven Kirtzic, PhD
+- Jeffrey Gordon, MS
